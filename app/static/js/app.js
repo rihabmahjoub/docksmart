@@ -271,24 +271,64 @@ if (typeof window.JOB_ID !== "undefined") {
 
     await nextPaint();
 
-    viewer = $3Dmol.createViewer("viewer-container", { backgroundColor: "white" });
-    viewer.resize();  // force the canvas to match the now-settled container size
+    const container = $("#viewer-container");
 
-    const receptorText = await (await fetch(jobFileUrl(result.receptor_pdb))).text();
-    viewer.addModel(receptorText, "pdb");  // model 0: receptor, stays loaded across pose switches
+    function showViewerError(message) {
+      console.error("[DockSmart viewer]", message);
+      container.innerHTML = `<div style="padding:16px; color:#7a241d; font-size:0.85rem;">
+        Could not display the 3D structure: ${message}. Open the browser console for details —
+        the pose data itself is unaffected; you can still download each pose's PDBQT from the
+        table below.
+      </div>`;
+    }
+
+    // A structure fetch returning an HTTP error, or a job file path that no
+    // longer resolves, previously failed *silently*: addModel() on an empty
+    // or non-PDB response (e.g. a JSON 404 body) parses to zero atoms with
+    // no exception, so nothing rendered and nothing was logged either. This
+    // wrapper makes that failure visible instead — check the browser
+    // console for the exact reason if the structure still doesn't appear.
+    async function fetchStructureText(absolutePath, label) {
+      const url = jobFileUrl(absolutePath);
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        throw new Error(`${label} fetch failed (HTTP ${resp.status} for ${url})`);
+      }
+      const text = await resp.text();
+      if (!/^(ATOM|HETATM|MODEL|REMARK|CRYST1|HEADER)/m.test(text)) {
+        throw new Error(`${label} response did not look like a PDB file (fetched from ${url})`);
+      }
+      return text;
+    }
+
+    let viewerReady = false;
+    try {
+      viewer = $3Dmol.createViewer("viewer-container", { backgroundColor: "white" });
+
+      const receptorText = await fetchStructureText(result.receptor_pdb, "Receptor structure");
+      viewer.addModel(receptorText, "pdb");  // model 0: receptor, stays loaded across pose switches
+      viewerReady = true;
+    } catch (err) {
+      showViewerError(err.message || String(err));
+      return;
+    }
 
     async function loadPose(idx) {
-      // Remove any previously-loaded ligand model (model 1) before adding
-      // the newly selected one, rather than stacking them.
-      const models = viewer.getModel(1);
-      if (models) viewer.removeModel(models);
-      const pose = result.poses[idx];
-      const poseText = await (await fetch(jobFileUrl(pose.pose_pdb))).text();
-      viewer.addModel(poseText, "pdb");
-      applyStyles();
-      viewer.resize();
-      viewer.zoomTo({ model: 1 });
-      viewer.render();
+      try {
+        // Remove any previously-loaded ligand model (model 1) before adding
+        // the newly selected one, rather than stacking them.
+        const existing = viewer.getModel(1);
+        if (existing) viewer.removeModel(existing);
+        const pose = result.poses[idx];
+        const poseText = await fetchStructureText(pose.pose_pdb, "Ligand pose");
+        viewer.addModel(poseText, "pdb");
+        applyStyles();
+        viewer.zoomTo({ model: 1 });
+        viewer.resize();
+        viewer.render();
+      } catch (err) {
+        showViewerError(err.message || String(err));
+      }
     }
 
     function applyStyles() {
@@ -350,7 +390,7 @@ if (typeof window.JOB_ID !== "undefined") {
     // initial load.
     window.addEventListener("resize", () => { if (viewer) { viewer.resize(); viewer.render(); } });
 
-    await loadPose(0);
+    if (viewerReady) await loadPose(0);
   }
 
   poll();
