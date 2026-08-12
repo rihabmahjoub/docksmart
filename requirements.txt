@@ -1,0 +1,48 @@
+# Every package below was actually installed together in a clean venv and
+# import-tested (not just resolved on paper) on 2026-08-10 — see the
+# "Verified dependency stack" section of README.md for how, and re-verify
+# if you bump any version, since several of these had non-obvious pitfalls.
+
+# --- Core web app -----------------------------------------------------------
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+jinja2==3.1.4
+requests==2.32.3
+pydantic==2.9.2
+
+# --- numpy is pinned explicitly, not left to float ---------------------------
+# pymol-open-source-whl hard-requires numpy==1.26.4. rdkit/openmm/meeko/vina
+# all work fine against that version too — pinning here prevents pip from
+# silently upgrading numpy when scipy/gemmi (meeko's undeclared deps, below)
+# are installed, which WILL break pymol2's import otherwise.
+numpy==1.26.4
+
+# --- Structural bioinformatics core ------------------------------------------
+rdkit==2024.3.5             # ligand handling, 3D embedding, RMSD-to-reference
+pdbfixer==1.12.0             # receptor repair — 1.9 no longer exists on PyPI
+openmm==8.5.2                 # pdbfixer 1.12.0 requires openmm>=8.2
+meeko==0.7.1                   # PDBQT prep for receptor + ligand — 0.6.1 never existed
+vina==1.2.7                     # AutoDock Vina Python bindings
+openbabel-wheel==3.1.1.23      # unofficial prebuilt wheel — plain 'openbabel' on PyPI is a
+                                 # source dist requiring SWIG + a pre-installed system OpenBabel,
+                                 # confirmed to fail the Docker build otherwise.
+                                 # WARNING: `import vina` + `from openbabel import pybel` in the
+                                 # SAME process crashes with an uncatchable C++ exception
+                                 # (confirmed by testing, not theoretical). app/services/
+                                 # postprocessing.py therefore calls the `obabel` CLI via
+                                 # subprocess, never a direct Python import — keep it that way.
+
+# --- meeko's undeclared runtime dependencies ---------------------------------
+# meeko imports these at runtime but does not list them in its own
+# install_requires, so pip install meeko alone will NOT pull them in —
+# confirmed by a ModuleNotFoundError at import time otherwise.
+scipy<1.14              # keep <1.14 to avoid it dragging numpy>=2 back in
+gemmi==0.7.5
+
+# --- Visualization: real headless PyMOL rendering, minimal footprint --------
+# pymol-open-source-whl (not the conda package!) is a ~15MB self-contained
+# wheel with NO Qt/GStreamer/X11 dependency chain — the conda-forge
+# pymol-open-source package pulls in ~185MB of GUI libraries you don't need
+# for headless rendering, which is a bad trade on a 512MB-RAM free tier.
+pymol-open-source-whl==3.2.0.1

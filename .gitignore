@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+data/jobs/*
+!data/jobs/.gitkeep
+data/docksmart.db
+*.egg-info/
+.venv/
+venv/

@@ -1,0 +1,32 @@
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="proteinGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#c3d2de"/>
+      <stop offset="55%" stop-color="#8fa9bd"/>
+      <stop offset="100%" stop-color="#5b7a92"/>
+    </radialGradient>
+    <linearGradient id="ligandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e9c873"/>
+      <stop offset="50%" stop-color="#c9992f"/>
+      <stop offset="100%" stop-color="#a9781c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- protein surface: an irregular blob built from overlapping circles, evoking a
+       molecular-surface render without needing an actual raster illustration -->
+  <g stroke="#3e5b70" stroke-width="1.1">
+    <circle cx="22" cy="18" r="9" fill="url(#proteinGrad)"/>
+    <circle cx="13" cy="27" r="8.5" fill="url(#proteinGrad)"/>
+    <circle cx="15" cy="40" r="9.5" fill="url(#proteinGrad)"/>
+    <circle cx="27" cy="47" r="8" fill="url(#proteinGrad)"/>
+    <circle cx="34" cy="38" r="7" fill="url(#proteinGrad)"/>
+    <circle cx="30" cy="26" r="7.5" fill="url(#proteinGrad)"/>
+  </g>
+  <!-- pocket notch where the ligand sits, carved by an off-white circle -->
+  <circle cx="33" cy="30" r="8" fill="#f7f7f5"/>
+
+  <!-- ligand: two linked spheres ("dumbbell") sitting in the pocket -->
+  <line x1="35" y1="24" x2="45" y2="18" stroke="#a9781c" stroke-width="2.2"/>
+  <circle cx="35" cy="24" r="5.4" fill="url(#ligandGrad)" stroke="#7a5713" stroke-width="1"/>
+  <circle cx="45" cy="18" r="4.4" fill="url(#ligandGrad)" stroke="#7a5713" stroke-width="1"/>
+</svg>

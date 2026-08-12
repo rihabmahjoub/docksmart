@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DockSmart — Job {{ job_id }}</title>
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="/" class="brand">
+    <img src="/static/img/logo.svg" alt="DockSmart logo" class="brand-logo">
+    <span class="brand-name">DOCKSMART</span>
+  </a>
+  <div class="nav-links">
+    <a href="/#documentation">Documentation</a>
+    <a href="/#team">About &amp; Contact</a>
+    <a href="/#run-docking" class="cta">New job</a>
+  </div>
+</nav>
+
+<section id="job">
+  <div class="section-eyebrow">Job status</div>
+  <h2 class="section-title" style="font-size:1.2rem; font-family: monospace; font-weight:600;">{{ job_id }}</h2>
+
+  <div class="card" id="status-card">
+    <h2>Pipeline progress</h2>
+    <ul class="stage-list" id="stage-list">
+      <li data-stage="queued"><span class="dot"></span> Queued</li>
+      <li data-stage="structure_qc"><span class="dot"></span> Structure QC (PDBFixer)</li>
+      <li data-stage="pocket_detection"><span class="dot"></span> Binding-site detection</li>
+      <li data-stage="receptor_pdbqt"><span class="dot"></span> Receptor preparation (PDBQT)</li>
+      <li data-stage="ligand_pdbqt"><span class="dot"></span> Ligand preparation (PDBQT)</li>
+      <li data-stage="docking"><span class="dot"></span> Docking (AutoDock Vina)</li>
+      <li data-stage="postprocessing"><span class="dot"></span> Pose analysis &amp; interaction fingerprint</li>
+      <li data-stage="rendering"><span class="dot"></span> Rendering</li>
+    </ul>
+    <div id="error-container"></div>
+  </div>
+
+  <!-- ============ Binding site ============ -->
+  <div class="card" id="pocket-card" style="display:none;">
+    <h2>Binding site used</h2>
+    <div id="pocket-info"></div>
+  </div>
+
+  <!-- ============ Receptor caution (only shown if residues were dropped) === -->
+  <div id="receptor-warning"></div>
+
+  <!-- ============ Interactive visualization ============ -->
+  <div class="card" id="viewer-card" style="display:none;">
+    <h2>Pose visualization</h2>
+
+    <div class="viewer-controls">
+      <div class="viewer-control-group">
+        <label>Pose</label>
+        <select id="pose-select"></select>
+      </div>
+      <div class="viewer-control-group">
+        <label>Background</label>
+        <select id="viz-bg">
+          <option value="white">White</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      <div class="viewer-control-group">
+        <label>Protein style</label>
+        <select id="viz-style">
+          <option value="cartoon">Cartoon</option>
+          <option value="surface">Surface</option>
+          <option value="stick">Stick</option>
+          <option value="line">Line</option>
+        </select>
+      </div>
+      <div class="viewer-control-group">
+        <label>Coloring</label>
+        <select id="viz-color">
+          <option value="spectrum">Rainbow (N→C terminus)</option>
+          <option value="chain">By chain</option>
+          <option value="element">By element</option>
+          <option value="interaction">Highlight binding-site residues</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="viewer-container"></div>
+    <div class="hint" style="margin-top:8px;">Protein shown per the style/coloring selected above · ligand always shown as colored sticks.</div>
+  </div>
+
+  <!-- ============ Poses table ============ -->
+  <div class="card" id="results-card" style="display:none;">
+    <h2>Top docking poses</h2>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:12px;">
+      <button type="button" class="button-secondary-sm" id="download-csv-btn">⬇ Download CSV</button>
+      <button type="button" class="button-secondary-sm" id="download-pdbqt-btn">⬇ Best pose (PDBQT)</button>
+    </div>
+    <table class="pose-table">
+      <thead><tr><th>Mode</th><th>Affinity (kcal/mol)</th><th>RMSD u.b.</th><th>H-bond contacts</th><th>Hydrophobic contacts</th><th>Structure</th></tr></thead>
+      <tbody id="pose-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  © 2026 DockSmart. Built for open, reproducible structural bioinformatics research.
+  <div class="footer-links">
+    <a href="/#documentation">Documentation</a>
+    <a href="/#team">Contact</a>
+  </div>
+</footer>
+
+<script>window.JOB_ID = "{{ job_id }}";</script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

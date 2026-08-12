@@ -1,0 +1,374 @@
+:root {
+  --bg: #fafaf8;
+  --bg-alt: #ffffff;
+  --panel: #ffffff;
+  --panel-alt: #f1f1ee;
+  --border: #e4e4df;
+  --text: #1c2226;
+  --text-dim: #656b64;
+  --accent: #b8860f;              /* gold, matched to the DockSmart wordmark */
+  --accent-dark: #8f6a0c;
+  --accent-soft: #f8efd9;
+  --steel: #5b7a92;               /* protein-surface steel blue, used sparingly */
+  --steel-soft: #eaeff3;
+  --dark-btn: #2b3238;            /* "Launch Workspace" dark button */
+  --dark-btn-hover: #1c2226;
+  --warn: #b5641a;
+  --error: #b3352c;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(20, 30, 25, 0.06), 0 1px 2px rgba(20, 30, 25, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 6% 8%, rgba(91,122,146,0.06) 0, transparent 40%),
+    radial-gradient(circle at 96% 14%, rgba(184,134,15,0.05) 0, transparent 38%),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.55;
+}
+
+/* ---------- Nav ---------- */
+nav.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(247, 247, 245, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.brand-logo { width: 38px; height: 38px; }
+.brand-name {
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #e9c873, #a9781c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nav-links { display: flex; gap: 6px; align-items: center; }
+.nav-links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 6px;
+}
+.nav-links a:hover { background: var(--panel-alt); color: var(--text); }
+.nav-links a.active { color: var(--accent-dark); background: var(--accent-soft); font-weight: 600; }
+.nav-links a.cta {
+  background: var(--dark-btn);
+  color: white;
+  padding: 9px 18px;
+}
+.nav-links a.cta:hover { background: var(--dark-btn-hover); }
+
+/* ---------- Hero ---------- */
+.hero {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 64px 32px 40px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: center;
+}
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding-top: 40px; } }
+
+.hero h1 { font-size: 2.4rem; margin: 0 0 14px; letter-spacing: -0.03em; line-height: 1.15; }
+.hero h1 span { color: var(--accent); }
+.hero p.lead { font-size: 1.08rem; color: var(--text-dim); margin: 0 0 26px; max-width: 46ch; }
+.hero .hero-actions { display: flex; gap: 12px; }
+
+.hero-visual {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.hero-visual svg { width: 100%; height: 100%; }
+
+/* ---------- Buttons ---------- */
+button.primary, a.button-primary {
+  background: var(--dark-btn);
+  color: white;
+  border: none;
+  padding: 13px 26px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+button.primary:hover, a.button-primary:hover { background: var(--dark-btn-hover); }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+a.button-secondary {
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  padding: 12px 26px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+a.button-secondary:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+/* ---------- Sections ---------- */
+section { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
+section.alt-bg { background: var(--bg-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); max-width: none; }
+section.alt-bg > .inner { max-width: 1080px; margin: 0 auto; padding: 60px 32px; }
+
+.section-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+section h2.section-title { font-size: 1.7rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+section p.section-lead { color: var(--text-dim); max-width: 60ch; margin: 0 0 36px; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.card h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card h2 .step-num {
+  background: var(--accent);
+  color: white;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.pipeline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-bottom: 10px; }
+.pipeline-step {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.pipeline-step .num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-dark);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem; margin-bottom: 10px;
+}
+.pipeline-step h3 { font-size: 0.95rem; margin: 0 0 6px; }
+.pipeline-step p { font-size: 0.85rem; color: var(--text-dim); margin: 0; }
+
+/* ---------- Team / contact ---------- */
+.team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.team-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  text-align: left;
+}
+.team-card .avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-dark);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; margin-bottom: 12px;
+}
+.team-card h3 { font-size: 0.98rem; margin: 0 0 3px; }
+.team-card .role { font-size: 0.8rem; color: var(--accent); margin-bottom: 8px; }
+.team-card .affil { font-size: 0.84rem; color: var(--text-dim); margin: 0; }
+.contact-box {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-top: 24px;
+  font-size: 0.92rem;
+}
+.contact-box a { color: var(--accent-dark); font-weight: 600; }
+
+/* ---------- Form elements (docking form) ---------- */
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tab-btn {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin: 12px 0 5px;
+  font-weight: 500;
+}
+input[type=text], input[type=number], select, textarea {
+  width: 100%;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 11px;
+  border-radius: 7px;
+  font-size: 0.9rem;
+}
+input[type=text]:focus, input[type=number]:focus, select:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input[type=file] { color: var(--text-dim); font-size: 0.85rem; }
+.row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.hint { font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; }
+.hint.warn { color: var(--warn); }
+.advanced-toggle { color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-top: 10px; display: inline-block; font-weight: 500; }
+#advanced-panel { display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 14px; }
+
+/* ---------- Job status ---------- */
+.stage-list { list-style: none; padding: 0; margin: 0; }
+.stage-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; color: var(--text-dim); font-size: 0.9rem; }
+.stage-list li.done { color: var(--accent); }
+.stage-list li.active { color: var(--text); font-weight: 600; }
+.stage-list .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+.stage-list li.done .dot { background: var(--accent); }
+.stage-list li.active .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+.error-box {
+  background: #fbeceb;
+  border: 1px solid var(--error);
+  color: #7a241d;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+}
+
+.warning-box {
+  background: #fdf3e0;
+  border: 1px solid #e8a93b;
+  color: #7a4d0a;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  margin-bottom: 14px;
+}
+
+table.pose-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+table.pose-table th, table.pose-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table.pose-table th { color: var(--text-dim); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.03em; }
+table.pose-table tr.best { background: var(--accent-soft); }
+table.pose-table td.pose-download a { font-size: 0.82rem; white-space: nowrap; }
+
+/* position:relative is set explicitly (not left to 3Dmol.js's own runtime
+   detection) so the canvas 3Dmol.js injects is always positioned relative
+   to THIS box. Without it, if 3Dmol.js reads the container's computed
+   position before the browser has settled layout (e.g. right after the
+   parent .card was switched from display:none to block in the same JS
+   tick), the canvas can end up positioned relative to an ancestor further
+   up the tree — visually landing near the top-left of the page instead of
+   inside this card. See app.js setupViewer() for the matching JS-side fix
+   (a rAF delay before creating the viewer, plus explicit .resize() calls). */
+#viewer-container { position: relative; width: 100%; height: 460px; background: #eef0ee; border-radius: 8px; overflow: hidden; }
+
+.viewer-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  background: var(--panel-alt);
+  border-radius: 8px;
+}
+.viewer-control-group label { margin: 0 0 4px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.viewer-control-group select { padding: 7px 9px; font-size: 0.85rem; }
+
+button.button-secondary-sm {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.button-secondary-sm:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+.score-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 4px;
+}
+.score-block { flex: 1; min-width: 220px; }
+.score-block .score-value { font-size: 2.1rem; font-weight: 800; color: var(--accent-dark); line-height: 1.1; }
+.score-block .score-label { font-size: 0.8rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 4px; }
+.score-block .score-def { font-size: 0.82rem; color: var(--text-dim); margin-top: 6px; max-width: 42ch; }
+
+.rmsd-caveat { font-size: 0.76rem; color: var(--text-dim); margin-top: 6px; border-left: 2px solid var(--warn); padding-left: 8px; }
+.pocket-chip {
+  display: inline-block;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  margin-right: 8px;
+}
+
+footer {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  padding: 36px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+footer .footer-links { margin-top: 8px; }
+footer .footer-links a { color: var(--text-dim); text-decoration: none; margin: 0 8px; }
+footer .footer-links a:hover { color: var(--accent); }

@@ -1,0 +1,57 @@
+<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated illustration of a ligand docking into a protein binding pocket">
+  <defs>
+    <radialGradient id="pGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#cddbe6"/>
+      <stop offset="55%" stop-color="#8fa9bd"/>
+      <stop offset="100%" stop-color="#5b7a92"/>
+    </radialGradient>
+    <linearGradient id="lGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e9c873"/>
+      <stop offset="50%" stop-color="#c9992f"/>
+      <stop offset="100%" stop-color="#a9781c"/>
+    </linearGradient>
+    <style>
+      .ligand-group {
+        animation: dock 4.5s ease-in-out infinite;
+        transform-origin: 300px 150px;
+      }
+      @keyframes dock {
+        0%   { transform: translate(70px, -40px) rotate(-18deg); opacity: 0; }
+        18%  { opacity: 1; }
+        45%, 65% { transform: translate(0, 0) rotate(0deg); }
+        85% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+        100% { transform: translate(70px, -40px) rotate(-18deg); opacity: 0; }
+      }
+      .pulse-ring {
+        animation: pulse 4.5s ease-in-out infinite;
+        transform-origin: 230px 150px;
+      }
+      @keyframes pulse {
+        0%, 40% { opacity: 0; r: 8; }
+        50% { opacity: 0.5; r: 8; }
+        65% { opacity: 0; r: 34; }
+        100% { opacity: 0; r: 34; }
+      }
+    </style>
+  </defs>
+
+  <!-- protein surface (static) -->
+  <g stroke="#3e5b70" stroke-width="1.4">
+    <circle cx="150" cy="110" r="52" fill="url(#pGrad)"/>
+    <circle cx="95" cy="150" r="48" fill="url(#pGrad)"/>
+    <circle cx="110" cy="205" r="55" fill="url(#pGrad)"/>
+    <circle cx="180" cy="230" r="46" fill="url(#pGrad)"/>
+    <circle cx="215" cy="180" r="42" fill="url(#pGrad)"/>
+    <circle cx="195" cy="130" r="44" fill="url(#pGrad)"/>
+  </g>
+  <!-- binding pocket -->
+  <circle cx="228" cy="148" r="40" fill="#f7f7f5"/>
+  <circle class="pulse-ring" cx="230" cy="150" r="8" fill="none" stroke="#c9992f" stroke-width="2"/>
+
+  <!-- ligand: animates in from top-right, settles into the pocket, then repeats -->
+  <g class="ligand-group">
+    <line x1="215" y1="160" x2="255" y2="130" stroke="#a9781c" stroke-width="7"/>
+    <circle cx="215" cy="160" r="26" fill="url(#lGrad)" stroke="#7a5713" stroke-width="2"/>
+    <circle cx="255" cy="130" r="21" fill="url(#lGrad)" stroke="#7a5713" stroke-width="2"/>
+  </g>
+</svg>

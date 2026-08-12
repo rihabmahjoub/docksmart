@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DockSmart — Automated Ligand–Protein Docking</title>
+<meta name="description" content="DockSmart: an automated, integrated web tool for ligand–protein interaction studies, built around AutoDock Vina.">
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="#home" class="brand">
+    <img src="/static/img/logo.svg" alt="DockSmart logo" class="brand-logo">
+    <span class="brand-name">DOCKSMART</span>
+  </a>
+  <div class="nav-links">
+    <a href="#home">Home</a>
+    <a href="#documentation">Documentation</a>
+    <a href="#team">About &amp; Contact</a>
+    <a href="#run-docking" class="cta">Run Docking</a>
+  </div>
+</nav>
+
+<!-- ============ HOME / HERO ============ -->
+<section id="home" class="hero">
+  <div>
+    <h1>Predictive <span>Molecular Binding</span> Interfaces</h1>
+    <p class="lead">
+      DockSmart is an automated, integrated web tool for ligand–protein interaction
+      studies. It streamlines the full docking workflow — receptor and ligand
+      preparation, binding-site detection, AutoDock Vina docking, and result
+      interpretation — into one standardized, reproducible pipeline.
+    </p>
+    <div class="hero-actions">
+      <a href="#run-docking" class="button-primary">Launch Workspace</a>
+      <a href="#documentation" class="button-secondary">Documentation</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <object type="image/svg+xml" data="/static/img/hero_docking_animation.svg" aria-label="Animated ligand docking into a protein binding pocket"></object>
+  </div>
+</section>
+
+<!-- ============ RUN DOCKING ============ -->
+<section id="run-docking" class="alt-bg">
+  <div class="inner">
+    <div class="section-eyebrow">Workspace</div>
+    <h2 class="section-title">Run a docking job</h2>
+    <p class="section-lead">
+      Provide a receptor and a ligand, choose how the binding site should be
+      selected, and DockSmart handles preparation, docking, and analysis
+      automatically. Each step below is one stage of the underlying pipeline
+      — nothing runs until you submit.
+    </p>
+
+    <form id="dock-form">
+      <div class="card">
+        <h2><span class="step-num">1</span> Receptor</h2>
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="pdb">PDB ID</button>
+          <button type="button" class="tab-btn" data-tab="upload-r">Upload file</button>
+        </div>
+        <div class="tab-panel active" id="tab-pdb">
+          <label for="receptor_pdb_id">RCSB PDB identifier</label>
+          <input type="text" id="receptor_pdb_id" name="receptor_pdb_id" placeholder="e.g. 5K5X" maxlength="4">
+          <div class="hint">Fetched live from RCSB — DockSmart will report chains and any co-crystallized ligand before you commit.</div>
+        </div>
+        <div class="tab-panel" id="tab-upload-r">
+          <label for="receptor_file">PDB file (your own, or the output of a protein-preparation tool)</label>
+          <input type="file" id="receptor_file" name="receptor_file" accept=".pdb,.ent">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">2</span> Ligand</h2>
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="smiles">SMILES</button>
+          <button type="button" class="tab-btn" data-tab="upload-l">Upload file</button>
+        </div>
+        <div class="tab-panel active" id="tab-smiles">
+          <label for="ligand_smiles">SMILES string</label>
+          <input type="text" id="ligand_smiles" name="ligand_smiles" placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O">
+        </div>
+        <div class="tab-panel" id="tab-upload-l">
+          <label for="ligand_file">SDF / MOL2 / PDB file (e.g. output of a ligand-preparation tool)</label>
+          <input type="file" id="ligand_file" name="ligand_file" accept=".sdf,.mol2,.pdb">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">3</span> Binding site</h2>
+        <label for="pocket_mode">Selection strategy</label>
+        <select id="pocket_mode" name="pocket_mode">
+          <option value="auto_fpocket" selected>Automatic — rank cavities with fpocket, dock into the top druggable pocket</option>
+          <option value="manual">Manual — I'll provide box center/size</option>
+        </select>
+        <div class="hint">Automatic mode reports every ranked pocket so you can confirm the choice before trusting the results.</div>
+
+        <div id="manual-box" style="display:none; margin-top:10px;">
+          <div class="row">
+            <div><label>Center X</label><input type="number" step="0.1" name="center_x" id="center_x"></div>
+            <div><label>Center Y</label><input type="number" step="0.1" name="center_y" id="center_y"></div>
+            <div><label>Center Z</label><input type="number" step="0.1" name="center_z" id="center_z"></div>
+          </div>
+          <div class="row">
+            <div><label>Size X (Å)</label><input type="number" step="1" name="size_x" id="size_x" value="20"></div>
+            <div><label>Size Y (Å)</label><input type="number" step="1" name="size_y" id="size_y" value="20"></div>
+            <div><label>Size Z (Å)</label><input type="number" step="1" name="size_z" id="size_z" value="20"></div>
+          </div>
+        </div>
+
+        <span class="advanced-toggle" id="advanced-toggle">⚙ Advanced parameters</span>
+        <div id="advanced-panel">
+          <div class="row">
+            <div><label>Exhaustiveness</label><input type="number" name="exhaustiveness" value="4" min="1" max="32"></div>
+            <div><label>Number of poses</label><input type="number" name="num_modes" value="10" min="1" max="20"></div>
+            <div></div>
+          </div>
+          <div class="hint">Higher exhaustiveness searches more thoroughly but takes proportionally longer — on free-tier hosting, values above ~8 can take several minutes.</div>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
+            <input type="checkbox" name="remove_waters" checked style="width:auto;"> Remove crystallographic waters
+          </label>
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" name="rebuild_missing_loops" style="width:auto;"> Rebuild missing loops
+          </label>
+          <div class="hint warn">Only enable loop rebuilding if a disordered region lines the binding site — otherwise it models geometry with no experimental support.</div>
+        </div>
+      </div>
+
+      <button type="submit" class="primary" style="width:100%;">Run docking</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ DOCUMENTATION ============ -->
+<section id="documentation">
+  <div class="section-eyebrow">How it works</div>
+  <h2 class="section-title">Pipeline overview</h2>
+  <p class="section-lead">
+    DockSmart automates the stages of a molecular docking study that are
+    usually done by hand across several separate tools. Each stage below
+    runs automatically once a job is submitted; the binding-site detection
+    step is the one most tools leave entirely manual.
+  </p>
+
+  <div class="pipeline-grid">
+    <div class="pipeline-step">
+      <div class="num">1</div>
+      <h3>Structure QC</h3>
+      <p>PDBFixer repairs the receptor — missing atoms, protonation at a chosen pH, optional water removal — without silently rebuilding unresolved loops.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="num">2</div>
+      <h3>Binding-site detection</h3>
+      <p>fpocket ranks candidate cavities by druggability score; the top pocket is used automatically, or you can set a manual box.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="num">3</div>
+      <h3>Ligand &amp; receptor prep</h3>
+      <p>Meeko converts both receptor and ligand into AutoDock-ready PDBQT files, the modern replacement for legacy AutoDockTools scripts.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="num">4</div>
+      <h3>Docking</h3>
+      <p>AutoDock Vina searches the selected binding site and returns ranked poses with predicted binding affinities.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="num">5</div>
+      <h3>Pose analysis</h3>
+      <p>Poses are split out individually and scored for interaction contacts (H-bond and hydrophobic) beyond the raw affinity value.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="num">6</div>
+      <h3>Visualization</h3>
+      <p>The top pose is rendered as a publication-style figure and made available for interactive exploration in the browser.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 30px;">
+    <h2>A note on reported values</h2>
+    <p style="color: var(--text-dim); font-size: 0.92rem; margin: 0;">
+      RMSD values reported for each pose describe divergence from the top-ranked
+      pose <em>within that same docking run</em> — not RMSD to a crystallographic
+      reference. fpocket's druggability score is a geometry-based plausibility
+      heuristic, not a thermodynamic binding prediction. These distinctions are
+      documented throughout the codebase and are worth keeping in mind when
+      interpreting results.
+    </p>
+  </div>
+</section>
+
+<!-- ============ ABOUT / TEAM / CONTACT ============ -->
+<section id="team" class="alt-bg">
+  <div class="inner">
+    <div class="section-eyebrow">About</div>
+    <h2 class="section-title">Team &amp; contact</h2>
+    <p class="section-lead">
+      DockSmart is developed as part of a structural bioinformatics platform
+      combining ligand preparation, protein preparation, molecular dynamics,
+      AlphaFold-based structure analysis, and docking into a single research
+      toolset.
+    </p>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="avatar">RM</div>
+        <h3>Rihab Mahjoub</h3>
+        <div class="role">Developer</div>
+        <p class="affil">
+          Institut Pasteur de Tunis — BiMS Laboratory (LR16IPT09)<br>
+          Higher Institute of Biotechnology, Manouba University
+        </p>
+      </div>
+    </div>
+
+    <div class="contact-box">
+      Questions, collaboration inquiries, or bug reports:
+      <a href="mailto:rihab.mahjoub@pasteur.utm.tn">rihab.mahjoub@pasteur.utm.tn</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © 2026 DockSmart. Built for open, reproducible structural bioinformatics research.
+  <div class="footer-links">
+    <a href="#documentation">Documentation</a>
+    <a href="#team">Contact</a>
+    <a href="https://github.com" target="_blank" rel="noopener">Source</a>
+  </div>
+</footer>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
