@@ -6,6 +6,13 @@
 <title>DockSmart — Job {{ job_id }}</title>
 <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
 <link rel="stylesheet" href="/static/css/style.css">
+<!-- The plain 3Dmol-min.js build (as opposed to 3Dmol-nojquery.js) has a real
+     jQuery dependency for parts of its internal DOM/label handling — some
+     CDN builds bundle it, but not reliably across versions, and nothing else
+     on this page provides a global jQuery. Loading it explicitly here is the
+     safe, standard fix documented by the 3Dmol.js project itself for exactly
+     this class of "works partway, then throws inside 3Dmol-min.js" failure. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
 </head>
 <body>
