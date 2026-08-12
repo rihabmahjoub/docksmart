@@ -1,6 +1,6 @@
 // ---- Shared helpers ---------------------------------------------------
-function $(sel) { return document.querySelector(sel); }
-function $all(sel) { return document.querySelectorAll(sel); }
+function qs(sel) { return document.querySelector(sel); }
+function qsa(sel) { return document.querySelectorAll(sel); }
 
 function jobFileUrl(absolutePath, download) {
   // Result paths from the backend are absolute server-side paths (e.g.
@@ -17,7 +17,7 @@ function jobFileUrl(absolutePath, download) {
 }
 
 // ---- index.html: tabs ---------------------------------------------------
-$all(".tab-btn").forEach(btn => {
+qsa(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const group = btn.closest(".tabs");
     group.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -27,23 +27,23 @@ $all(".tab-btn").forEach(btn => {
   });
 });
 
-const advToggle = $("#advanced-toggle");
+const advToggle = qs("#advanced-toggle");
 if (advToggle) {
   advToggle.addEventListener("click", () => {
-    const panel = $("#advanced-panel");
+    const panel = qs("#advanced-panel");
     panel.style.display = panel.style.display === "block" ? "none" : "block";
   });
 }
 
-const pocketMode = $("#pocket_mode");
+const pocketMode = qs("#pocket_mode");
 if (pocketMode) {
   pocketMode.addEventListener("change", () => {
-    $("#manual-box").style.display = pocketMode.value === "manual" ? "block" : "none";
+    qs("#manual-box").style.display = pocketMode.value === "manual" ? "block" : "none";
   });
 }
 
 // ---- index.html: form submission ---------------------------------------
-const dockForm = $("#dock-form");
+const dockForm = qs("#dock-form");
 if (dockForm) {
   dockForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -58,24 +58,24 @@ if (dockForm) {
     // cover the supported paths).
     const receptorTabId = document.querySelector(".card:nth-of-type(1) .tab-btn.active").dataset.tab;
     if (receptorTabId === "pdb") {
-      formData.append("receptor_pdb_id", $("#receptor_pdb_id").value.trim());
+      formData.append("receptor_pdb_id", qs("#receptor_pdb_id").value.trim());
     } else {
-      const f = $("#receptor_file").files[0];
+      const f = qs("#receptor_file").files[0];
       if (f) formData.append("receptor_file", f);
     }
 
     const ligandTabId = document.querySelector(".card:nth-of-type(2) .tab-btn.active").dataset.tab;
     if (ligandTabId === "smiles") {
-      formData.append("ligand_smiles", $("#ligand_smiles").value.trim());
+      formData.append("ligand_smiles", qs("#ligand_smiles").value.trim());
     } else {
-      const f = $("#ligand_file").files[0];
+      const f = qs("#ligand_file").files[0];
       if (f) formData.append("ligand_file", f);
     }
 
     formData.append("pocket_mode", pocketMode.value);
     if (pocketMode.value === "manual") {
       ["center_x", "center_y", "center_z", "size_x", "size_y", "size_z"].forEach(id => {
-        formData.append(id, $(`#${id}`).value);
+        formData.append(id, qs(`#${id}`).value);
       });
     }
 
@@ -120,7 +120,7 @@ if (typeof window.JOB_ID !== "undefined") {
     updateStageList(data.stage, data.status);
 
     if (data.status === "failed") {
-      $("#error-container").innerHTML =
+      qs("#error-container").innerHTML =
         `<div class="error-box"><strong>Failed at stage: ${data.stage}</strong>\n${data.error_message || ""}</div>`;
       return;
     }
@@ -133,7 +133,7 @@ if (typeof window.JOB_ID !== "undefined") {
 
   function updateStageList(currentStage, status) {
     const idx = STAGE_ORDER.indexOf(currentStage);
-    $all("#stage-list li").forEach(li => {
+    qsa("#stage-list li").forEach(li => {
       const liIdx = STAGE_ORDER.indexOf(li.dataset.stage);
       li.classList.remove("done", "active");
       if (status === "succeeded" || liIdx < idx) li.classList.add("done");
@@ -147,12 +147,12 @@ if (typeof window.JOB_ID !== "undefined") {
     lastResult = result;
 
     if (result.pocket_info) {
-      $("#pocket-card").style.display = "block";
-      $("#pocket-info").innerHTML = renderPocketInfo(result.pocket_info);
+      qs("#pocket-card").style.display = "block";
+      qs("#pocket-info").innerHTML = renderPocketInfo(result.pocket_info);
     }
 
     if (result.receptor_dropped_residues && result.receptor_dropped_residues.length > 0) {
-      $("#receptor-warning").innerHTML = `
+      qs("#receptor-warning").innerHTML = `
         <div class="warning-box">
           <strong>Note:</strong> ${result.receptor_dropped_residues.length} receptor residue(s)
           (${result.receptor_dropped_residues.join(", ")}) were automatically excluded during
@@ -164,16 +164,16 @@ if (typeof window.JOB_ID !== "undefined") {
     }
 
     renderPoseTable(result.poses);
-    $("#results-card").style.display = "block";
+    qs("#results-card").style.display = "block";
 
     if (result.receptor_pdb && result.poses.length > 0) {
-      $("#viewer-card").style.display = "block";
+      qs("#viewer-card").style.display = "block";
       setupViewer(result);
     }
   }
 
   function renderPoseTable(poses) {
-    const tbody = $("#pose-tbody");
+    const tbody = qs("#pose-tbody");
     tbody.innerHTML = "";
     poses.forEach((pose, i) => {
       const tr = document.createElement("tr");
@@ -218,7 +218,7 @@ if (typeof window.JOB_ID !== "undefined") {
   }
 
   // ---- CSV export (client-side, no backend endpoint needed) --------------
-  $("#download-csv-btn")?.addEventListener("click", () => {
+  qs("#download-csv-btn")?.addEventListener("click", () => {
     if (!lastResult) return;
     const rows = [["Mode", "Affinity (kcal/mol)", "RMSD u.b.", "H-bond contacts", "Hydrophobic contacts"]];
     lastResult.poses.forEach(p => {
@@ -238,7 +238,7 @@ if (typeof window.JOB_ID !== "undefined") {
     URL.revokeObjectURL(a.href);
   });
 
-  $("#download-pdbqt-btn")?.addEventListener("click", () => {
+  qs("#download-pdbqt-btn")?.addEventListener("click", () => {
     if (!lastResult || !lastResult.poses[0] || !lastResult.poses[0].pose_pdbqt) return;
     window.location.href = jobFileUrl(lastResult.poses[0].pose_pdbqt, true);
   });
@@ -260,7 +260,7 @@ if (typeof window.JOB_ID !== "undefined") {
   }
 
   async function setupViewer(result) {
-    const poseSelect = $("#pose-select");
+    const poseSelect = qs("#pose-select");
     poseSelect.innerHTML = "";
     result.poses.forEach((p, i) => {
       const opt = document.createElement("option");
@@ -271,7 +271,7 @@ if (typeof window.JOB_ID !== "undefined") {
 
     await nextPaint();
 
-    const container = $("#viewer-container");
+    const container = qs("#viewer-container");
 
     function showViewerError(message) {
       console.error("[DockSmart viewer]", message);
@@ -332,11 +332,11 @@ if (typeof window.JOB_ID !== "undefined") {
     }
 
     function applyStyles() {
-      const bg = $("#viz-bg").value;
+      const bg = qs("#viz-bg").value;
       viewer.setBackgroundColor(bg === "dark" ? "#0a0e14" : "white");
 
-      const style = $("#viz-style").value;
-      const colorMode = $("#viz-color").value;
+      const style = qs("#viz-style").value;
+      const colorMode = qs("#viz-color").value;
 
       let proteinStyle = {};
       const colorSpec = colorMode === "chain" ? { colorscheme: "chain" }
@@ -382,7 +382,7 @@ if (typeof window.JOB_ID !== "undefined") {
 
     poseSelect.addEventListener("change", () => loadPose(parseInt(poseSelect.value, 10)));
     ["viz-bg", "viz-style", "viz-color"].forEach(id => {
-      $(`#${id}`).addEventListener("change", () => { applyStyles(); viewer.render(); });
+      qs(`#${id}`).addEventListener("change", () => { applyStyles(); viewer.render(); });
     });
 
     // Keep the canvas matched to its container across browser resizes /
