@@ -275,6 +275,18 @@ if (typeof window.JOB_ID !== "undefined") {
 
     function showViewerError(message) {
       console.error("[DockSmart viewer]", message);
+      // Stop the old viewer's internal render loop before we tear out its
+      // canvas: 3Dmol.js runs its own requestAnimationFrame loop, so if we
+      // just wipe container.innerHTML while `viewer` is still referenced,
+      // that loop keeps ticking against a canvas that's no longer in the
+      // DOM and can throw its own *separate*, uncaught error a moment
+      // later (visible in the console as coming from 3Dmol-min.js itself,
+      // not from app.js) — harmless to the user (the error message is
+      // already showing) but worth silencing at the source.
+      if (viewer) {
+        try { viewer.clear(); } catch (e) { /* best effort */ }
+        viewer = null;
+      }
       container.innerHTML = `<div style="padding:16px; color:#7a241d; font-size:0.85rem;">
         Could not display the 3D structure: ${message}. Open the browser console for details —
         the pose data itself is unaffected; you can still download each pose's PDBQT from the
@@ -292,6 +304,19 @@ if (typeof window.JOB_ID !== "undefined") {
       const url = jobFileUrl(absolutePath);
       const resp = await fetch(url);
       if (!resp.ok) {
+        if (resp.status === 404) {
+          // The most common real-world cause on a free-tier host: the
+          // server process was restarted (idle spin-down or a redeploy)
+          // since this job ran, and job files live on local/ephemeral
+          // disk — they do not survive a restart. This is expected for an
+          // *old* job link, not a pipeline bug; a freshly-submitted job's
+          // files exist for as long as that same server process stays up.
+          throw new Error(
+            `${label} is missing on the server (HTTP 404). This job's files were likely lost when ` +
+            `the server restarted (common on free-tier hosting after idle spin-down, or after a ` +
+            `redeploy) — job data isn't kept across restarts. Submit a new job to get a working link.`
+          );
+        }
         throw new Error(`${label} fetch failed (HTTP ${resp.status} for ${url})`);
       }
       const text = await resp.text();
