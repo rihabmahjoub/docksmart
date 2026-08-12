@@ -2,6 +2,17 @@
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
+// Surface any error thrown asynchronously (e.g. from inside 3Dmol.js's own
+// internal render/animation loop, which runs outside any of our try/catch
+// blocks) instead of letting it vanish as a console-only "Uncaught" entry
+// that's easy to miss and gives no context about which job/page it came from.
+window.addEventListener("error", (e) => {
+  console.error("[DockSmart uncaught]", e.message, "\n", e.error && e.error.stack);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  console.error("[DockSmart unhandled rejection]", e.reason);
+});
+
 function jobFileUrl(absolutePath, download) {
   // Result paths from the backend are absolute server-side paths (e.g.
   // ".../data/jobs/<job_id>/poses_pdb/pose_1.pdbqt") — pose files live in
@@ -273,8 +284,8 @@ if (typeof window.JOB_ID !== "undefined") {
 
     const container = qs("#viewer-container");
 
-    function showViewerError(message) {
-      console.error("[DockSmart viewer]", message);
+    function showViewerError(message, stack) {
+      console.error("[DockSmart viewer]", message, "\n", stack || "(no stack trace available)");
       // Stop the old viewer's internal render loop before we tear out its
       // canvas: 3Dmol.js runs its own requestAnimationFrame loop, so if we
       // just wipe container.innerHTML while `viewer` is still referenced,
@@ -328,17 +339,24 @@ if (typeof window.JOB_ID !== "undefined") {
 
     let viewerReady = false;
     try {
+      if (typeof $3Dmol === "undefined") {
+        throw new Error("The 3Dmol.js library did not load (window.$3Dmol is undefined) — likely blocked by an ad-blocker/extension or a CDN network error");
+      }
       viewer = $3Dmol.createViewer("viewer-container", { backgroundColor: "white" });
+      if (!viewer) {
+        throw new Error("$3Dmol.createViewer() returned no viewer instance");
+      }
 
       const receptorText = await fetchStructureText(result.receptor_pdb, "Receptor structure");
       viewer.addModel(receptorText, "pdb");  // model 0: receptor, stays loaded across pose switches
       viewerReady = true;
     } catch (err) {
-      showViewerError(err.message || String(err));
+      showViewerError(err.message || String(err), err.stack);
       return;
     }
 
     async function loadPose(idx) {
+      if (!viewer) return;  // a prior error already tore the viewer down
       try {
         // Remove any previously-loaded ligand model (model 1) before adding
         // the newly selected one, rather than stacking them.
@@ -352,11 +370,12 @@ if (typeof window.JOB_ID !== "undefined") {
         viewer.resize();
         viewer.render();
       } catch (err) {
-        showViewerError(err.message || String(err));
+        showViewerError(err.message || String(err), err.stack);
       }
     }
 
     function applyStyles() {
+      if (!viewer) return;
       const bg = qs("#viz-bg").value;
       viewer.setBackgroundColor(bg === "dark" ? "#0a0e14" : "white");
 
@@ -407,7 +426,15 @@ if (typeof window.JOB_ID !== "undefined") {
 
     poseSelect.addEventListener("change", () => loadPose(parseInt(poseSelect.value, 10)));
     ["viz-bg", "viz-style", "viz-color"].forEach(id => {
-      qs(`#${id}`).addEventListener("change", () => { applyStyles(); viewer.render(); });
+      qs(`#${id}`).addEventListener("change", () => {
+        if (!viewer) return;
+        try {
+          applyStyles();
+          viewer.render();
+        } catch (err) {
+          showViewerError(err.message || String(err), err.stack);
+        }
+      });
     });
 
     // Keep the canvas matched to its container across browser resizes /
