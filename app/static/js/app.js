@@ -283,6 +283,8 @@ if (typeof window.JOB_ID !== "undefined") {
     await nextPaint();
 
     const container = qs("#viewer-container");
+    let receptorModel = null;
+    let ligandModel = null;
 
     function showViewerError(message, stack) {
       console.error("[DockSmart viewer]", message, "\n", stack || "(no stack trace available)");
@@ -298,6 +300,8 @@ if (typeof window.JOB_ID !== "undefined") {
         try { viewer.clear(); } catch (e) { /* best effort */ }
         viewer = null;
       }
+      receptorModel = null;
+      ligandModel = null;
       container.innerHTML = `<div style="padding:16px; color:#7a241d; font-size:0.85rem;">
         Could not display the 3D structure: ${message}. Open the browser console for details —
         the pose data itself is unaffected; you can still download each pose's PDBQT from the
@@ -334,6 +338,10 @@ if (typeof window.JOB_ID !== "undefined") {
       if (!/^(ATOM|HETATM|MODEL|REMARK|CRYST1|HEADER)/m.test(text)) {
         throw new Error(`${label} response did not look like a PDB file (fetched from ${url})`);
       }
+      const atomCount = (text.match(/^(ATOM|HETATM)/gm) || []).length;
+      if (atomCount === 0) {
+        throw new Error(`${label} has no ATOM/HETATM records (fetched from ${url}) — the file exists but is empty`);
+      }
       return text;
     }
 
@@ -348,52 +356,47 @@ if (typeof window.JOB_ID !== "undefined") {
       }
 
       const receptorText = await fetchStructureText(result.receptor_pdb, "Receptor structure");
-      viewer.addModel(receptorText, "pdb");  // model 0: receptor, stays loaded across pose switches
+      // IMPORTANT: keep the GLModel object addModel() returns and style it
+      // directly (receptorModel.setStyle(...)) rather than re-selecting it
+      // later via viewer.setStyle({model: 0}, ...). The index-based selector
+      // routes through 3Dmol's internal applyToModels(), which — confirmed
+      // by a real stack trace from this exact deployment — can crash with
+      // "Cannot read properties of undefined (reading 'setStyle')" if its
+      // internal model bookkeeping doesn't line up with the index at call
+      // time. Holding direct object references sidesteps that lookup
+      // entirely: it's not a timing/ordering issue we can fix from here,
+      // it's the library's own index-selector path being unreliable in
+      // this version, so we simply stop using it for the two structures we
+      // fully control.
+      receptorModel = viewer.addModel(receptorText, "pdb");
+      if (!receptorModel) {
+        throw new Error("3Dmol.js addModel() did not return a receptor model");
+      }
       viewerReady = true;
     } catch (err) {
       showViewerError(err.message || String(err), err.stack);
       return;
     }
 
-    async function loadPose(idx) {
-      if (!viewer) return;  // a prior error already tore the viewer down
-      try {
-        // Remove any previously-loaded ligand model (model 1) before adding
-        // the newly selected one, rather than stacking them.
-        const existing = viewer.getModel(1);
-        if (existing) viewer.removeModel(existing);
-        const pose = result.poses[idx];
-        const poseText = await fetchStructureText(pose.pose_pdb, "Ligand pose");
-        viewer.addModel(poseText, "pdb");
-        applyStyles();
-        viewer.zoomTo({ model: 1 });
-        viewer.resize();
-        viewer.render();
-      } catch (err) {
-        showViewerError(err.message || String(err), err.stack);
-      }
-    }
-
-    function applyStyles() {
-      if (!viewer) return;
+    function styleReceptor() {
+      if (!viewer || !receptorModel) return;
       const bg = qs("#viz-bg").value;
       viewer.setBackgroundColor(bg === "dark" ? "#0a0e14" : "white");
 
       const style = qs("#viz-style").value;
       const colorMode = qs("#viz-color").value;
 
-      let proteinStyle = {};
       const colorSpec = colorMode === "chain" ? { colorscheme: "chain" }
         : colorMode === "element" ? { colorscheme: "default" }
         : colorMode === "spectrum" ? { color: "spectrum" }
         : {};  // "interaction" mode colors are applied separately below
 
-      if (style === "cartoon") proteinStyle = { cartoon: { ...colorSpec } };
-      else if (style === "surface") proteinStyle = { cartoon: { ...colorSpec } };
-      else if (style === "stick") proteinStyle = { stick: { ...colorSpec, radius: 0.15 } };
+      let proteinStyle;
+      if (style === "stick") proteinStyle = { stick: { ...colorSpec, radius: 0.15 } };
       else if (style === "line") proteinStyle = { line: { ...colorSpec } };
+      else proteinStyle = { cartoon: { ...colorSpec } };  // "cartoon" and "surface" both use a cartoon base
 
-      viewer.setStyle({ model: 0 }, colorMode === "interaction" ? { cartoon: { color: "lightgrey" } } : proteinStyle);
+      receptorModel.setStyle({}, colorMode === "interaction" ? { cartoon: { color: "lightgrey" } } : proteinStyle);
 
       viewer.removeAllSurfaces();
       if (style === "surface") {
@@ -402,26 +405,68 @@ if (typeof window.JOB_ID !== "undefined") {
         // remain visible through the surface rather than being visually
         // buried by it — a fully opaque/near-opaque surface was the other
         // reason the ligand looked "missing" in this mode specifically.
-        viewer.addSurface(
-          $3Dmol.SurfaceType.VDW,
-          { opacity: 0.55, color: "#dfe3e6" },
-          { model: 0 }
-        );
+        try {
+          viewer.addSurface(
+            $3Dmol.SurfaceType.VDW,
+            { opacity: 0.55, color: "#dfe3e6" },
+            { model: receptorModel }
+          );
+        } catch (err) {
+          console.error("[DockSmart viewer] surface generation failed (non-fatal):", err);
+        }
       }
 
-      if (colorMode === "interaction") {
-        // Highlight residues within 4.5 Å of the ligand model (model 1) —
-        // a simple, always-available visual proxy for "the binding site",
-        // independent of whether the richer ProLIF fingerprint ran.
-        viewer.setStyle(
-          { model: 0, within: { distance: 4.5, sel: { model: 1 } } },
-          { stick: { color: "orange", radius: 0.18 }, cartoon: { color: "lightgrey" } }
-        );
+      if (colorMode === "interaction" && ligandModel) {
+        // Highlight receptor residues within 4.5 Å of the ligand — a
+        // simple, always-available visual proxy for "the binding site".
+        // This still goes through viewer.setStyle() with a cross-model
+        // "within" selector (there's no way to express "atoms near a
+        // DIFFERENT model" from a single GLModel's own setStyle), so it's
+        // wrapped defensively: if 3Dmol's selector machinery has trouble
+        // with this specific query, we lose the highlight, not the whole
+        // viewer.
+        try {
+          viewer.setStyle(
+            { model: receptorModel, within: { distance: 4.5, sel: { model: ligandModel } } },
+            { stick: { color: "orange", radius: 0.18 }, cartoon: { color: "lightgrey" } }
+          );
+        } catch (err) {
+          console.error("[DockSmart viewer] interaction highlighting failed (non-fatal):", err);
+        }
       }
+    }
 
+    function styleLigand() {
+      if (!ligandModel) return;
       // Ligand: always shown as colored sticks regardless of protein style,
       // so it never silently disappears depending on the chosen representation.
-      viewer.setStyle({ model: 1 }, { stick: { colorscheme: "greenCarbon", radius: 0.25 } });
+      ligandModel.setStyle({}, { stick: { colorscheme: "greenCarbon", radius: 0.25 } });
+    }
+
+    async function loadPose(idx) {
+      if (!viewer || !receptorModel) return;  // a prior error already tore the viewer down
+      try {
+        if (ligandModel) {
+          try { viewer.removeModel(ligandModel); } catch (e) { /* best effort */ }
+          ligandModel = null;
+        }
+        const pose = result.poses[idx];
+        if (!pose || !pose.pose_pdb) {
+          throw new Error(`Pose ${idx + 1} has no associated structure file`);
+        }
+        const poseText = await fetchStructureText(pose.pose_pdb, `Ligand pose ${pose.mode}`);
+        ligandModel = viewer.addModel(poseText, "pdb");
+        if (!ligandModel) {
+          throw new Error(`3Dmol.js addModel() did not return a ligand model for pose ${pose.mode}`);
+        }
+        styleReceptor();
+        styleLigand();
+        viewer.zoomTo();  // frame the whole scene (receptor + ligand), not one model in isolation
+        viewer.resize();
+        viewer.render();
+      } catch (err) {
+        showViewerError(err.message || String(err), err.stack);
+      }
     }
 
     poseSelect.addEventListener("change", () => loadPose(parseInt(poseSelect.value, 10)));
@@ -429,7 +474,8 @@ if (typeof window.JOB_ID !== "undefined") {
       qs(`#${id}`).addEventListener("change", () => {
         if (!viewer) return;
         try {
-          applyStyles();
+          styleReceptor();
+          styleLigand();
           viewer.render();
         } catch (err) {
           showViewerError(err.message || String(err), err.stack);
