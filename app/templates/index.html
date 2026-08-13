@@ -135,63 +135,58 @@
 </section>
 
 <!-- ============ DOCUMENTATION ============ -->
-<section id="documentation">
-  <div class="section-eyebrow">How it works</div>
-  <h2 class="section-title">Pipeline overview</h2>
-  <p class="section-lead">
-    DockSmart automates the stages of a molecular docking study that are
-    usually done by hand across several separate tools. Each stage below
-    runs automatically once a job is submitted; the binding-site detection
-    step is the one most tools leave entirely manual.
-  </p>
-
-  <div class="pipeline-grid">
-    <div class="pipeline-step">
-      <div class="num">1</div>
-      <h3>Structure QC</h3>
-      <p>PDBFixer repairs the receptor — missing atoms, protonation at a chosen pH, optional water removal — without silently rebuilding unresolved loops.</p>
-    </div>
-    <div class="pipeline-step">
-      <div class="num">2</div>
-      <h3>Binding-site detection</h3>
-      <p>fpocket ranks candidate cavities by druggability score; the top pocket is used automatically, or you can set a manual box.</p>
-    </div>
-    <div class="pipeline-step">
-      <div class="num">3</div>
-      <h3>Ligand &amp; receptor prep</h3>
-      <p>Meeko converts both receptor and ligand into AutoDock-ready PDBQT files, the modern replacement for legacy AutoDockTools scripts.</p>
-    </div>
-    <div class="pipeline-step">
-      <div class="num">4</div>
-      <h3>Docking</h3>
-      <p>AutoDock Vina searches the selected binding site and returns ranked poses with predicted binding affinities.</p>
-    </div>
-    <div class="pipeline-step">
-      <div class="num">5</div>
-      <h3>Pose analysis</h3>
-      <p>Poses are split out individually and scored for interaction contacts (H-bond and hydrophobic) beyond the raw affinity value.</p>
-    </div>
-    <div class="pipeline-step">
-      <div class="num">6</div>
-      <h3>Visualization</h3>
-      <p>The top pose is rendered as a publication-style figure and made available for interactive exploration in the browser.</p>
-    </div>
-  </div>
-    <div class="pipeline-step">
-      
-      
-      <h3>note on reported values</h3>
-      <p style="color: var(--text-dim); font-size: 0.92rem; margin: 0;">
-      RMSD values reported for each pose describe divergence from the top-ranked
-      pose <em>within that same docking run</em> — not RMSD to a crystallographic
-      reference. fpocket's druggability score is a geometry-based plausibility
-      heuristic, not a thermodynamic binding prediction. These distinctions are
-      documented throughout the codebase and are worth keeping in mind when
-      interpreting results.
-      </p>
-    </div>
-  </div>
-</section>
+  <section id="documentation"> 
+    <div class="section-eyebrow">
+      How it works
+    </div> 
+    <h2 class="section-title">Pipeline overview</h2>
+    <p class="section-lead"> 
+      DockSmart automates the stages of a molecular docking study that are usually done by hand across several separate tools.
+      Each stage below runs automatically once a job is submitted; the binding-site detection step is the one most tools leave entirely manual. 
+    </p> 
+    <div class="pipeline-grid"> 
+      <div class="pipeline-step"> 
+        <div class="num">1</div> 
+        <h3>Structure QC</h3>
+        <p> PDBFixer repairs the receptor: missing atoms, protonation at a chosen pH, optional water removal,
+          without silently rebuilding unresolved loops. </p> 
+      </div> 
+      <div class="pipeline-step"> 
+        <div class="num">2</div> 
+        <h3>Binding-site detection</h3>
+        <p> fpocket ranks candidate cavities by druggability score; the top pocket is used automatically, or you can set a manual box. </p>
+      </div> 
+      <div class="pipeline-step"> 
+        <div class="num">3</div>
+        <h3>Ligand &amp; receptor prep</h3>
+        <p> Meeko converts both receptor and ligand into AutoDock-ready PDBQT files, the modern replacement for legacy AutoDockTools scripts. </p> 
+      </div> 
+      <div class="pipeline-step"> 
+        <div class="num">4</div>
+        <h3>Docking</h3> 
+        <p> AutoDock Vina searches the selected binding site and returns ranked poses with predicted binding affinities. </p>
+      </div> 
+      <div class="pipeline-step"> 
+        <div class="num">5</div>
+        <h3>Pose analysis</h3> 
+        <p> Poses are split out individually and scored for interaction contacts (H-bond and hydrophobic) beyond the raw affinity value. </p>
+      </div>
+      <div class="pipeline-step"> 
+        <div class="num">6</div> 
+        <h3>Visualization</h3>
+        <p> The top pose is rendered as a publication-style figure and made available for interactive exploration in the browser. </p>
+      </div> 
+      <!-- NOTE: RMSD -->
+      <div class="pipeline-step">
+        <div class="num">7</div>
+        <h3>Note on reported values</h3> 
+        <p> RMSD values reported for each pose describe divergence from the top-ranked pose <em>within that same docking run</em>,
+          not RMSD to a crystallographic reference. fpocket's druggability score is a geometry-based plausibility heuristic,
+          not a thermodynamic binding prediction. These distinctions are documented 
+          throughout the codebase and are worth keeping in mind when interpreting results. </p> 
+      </div>
+    </div> 
+  </section>
 
 <!-- ============ ABOUT / TEAM / CONTACT ============ -->
 <section id="team" class="alt-bg">
