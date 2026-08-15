@@ -87,7 +87,7 @@ def _run_vina_python(
 ) -> list[VinaPose]:
     from vina import Vina  # raises ImportError if not installed
 
-    v = Vina(sf_name="vina", seed=seed if seed is not None else 0)
+    v = Vina(sf_name="vina", cpu=settings.VINA_CPU, seed=seed if seed is not None else 0)
     v.set_receptor(str(receptor_pdbqt))
     v.set_ligand_from_file(str(ligand_pdbqt))
     v.compute_vina_maps(center=list(box.center), box_size=list(box.size))
@@ -134,6 +134,7 @@ def _run_vina_cli(
         "--exhaustiveness", str(exhaustiveness),
         "--num_modes", str(num_modes),
         "--energy_range", str(energy_range),
+        "--cpu", str(settings.VINA_CPU),
         "--out", str(output_pdbqt),
     ]
     if seed is not None:
