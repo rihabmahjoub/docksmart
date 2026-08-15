@@ -36,6 +36,20 @@ class Settings:
     DEFAULT_NUM_MODES: int = int(os.getenv("DOCKSMART_NUM_MODES", 10))
     DEFAULT_BOX_PADDING_A: float = 5.0  # angstroms around a co-crystal ligand / pocket
 
+    # Vina's own thread count for a SINGLE job — separate from
+    # MAX_CONCURRENT_JOBS below, which only bounds how many jobs run at
+    # once. Left unset, Vina calls the host's CPU count (e.g. via
+    # std::thread::hardware_concurrency / Python's os.cpu_count()) and
+    # spawns that many search threads. On Render, the container reports the
+    # *host machine's* full core count even though the container itself is
+    # only entitled to a small memory budget (512MB on free tier) — so a
+    # single job can OOM (exit 137) purely from Vina's own thread-local
+    # search-state memory, with no other job running at all. Confirmed by a
+    # real Render OOM restart on a single 1IEP docking job. Default of 1 is
+    # deliberately conservative for free-tier memory safety; raise via env
+    # var on a host with more RAM if faster wall-clock time is wanted.
+    VINA_CPU: int = int(os.getenv("DOCKSMART_VINA_CPU", 1))
+
     # --- Per-stage subprocess timeouts -----------------------------------
     # These were originally hardcoded at 120s/180s, which is fine on a normal
     # CPU but genuinely too short on Render free tier (0.1 CPU): Meeko's
