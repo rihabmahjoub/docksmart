@@ -3,9 +3,10 @@ Receptor preparation.
 
 Two steps, each swappable independently:
 
- 1. Structural repair with PDBFixer (missing residues/atoms, alternate
-    locations, optional hydrogen addition at a given pH, water/heteroatom
-    stripping).
+ 1. Structural repair with PDBFixer (missing residues/atoms, non-standard
+    residues, optional hydrogen addition at a given pH, water/heteroatom
+    stripping) — plus alternate-location (altLoc) collapsing, which
+    PDBFixer does NOT do on its own (see _collapse_altlocs).
  2. Conversion to AutoDock-flavoured PDBQT with Meeko, which has replaced
     the old (unmaintained) AutoDockTools `prepare_receptor4.py` scripts
     used in most legacy docking tutorials.
@@ -46,6 +47,64 @@ def _extract_offending_residues(stderr: str) -> list[str]:
     return sorted(set(_EXCESS_BOND_RE.findall(stderr or "")))
 
 
+def _collapse_altlocs(pdb_text: str) -> str:
+    """Keep exactly one alternate-location record per atom, blank its altLoc
+    field, and drop the rest.
+
+    Confirmed necessary by reproduction on a real structure (PDB 5K5X):
+    PDBFixer does NOT resolve alternate locations on its own — despite this
+    module's docstring having previously (incorrectly) implied it does —
+    it passes duplicate ATOM records straight through when a residue has
+    more than one refined conformation (altLoc 'A'/'B'/...). Meeko then
+    tries to build a single RDKit molecule per residue from the raw PDB
+    atom records; with both altLoc copies of an atom present, its
+    altloc-handling path (_aux_altloc_mol_build) can end up perceiving an
+    extra bond that pushes an atom's computed valence above what RDKit's
+    sanitizer allows (observed: 'Explicit valence for atom # 6 C, 5, is
+    greater than permitted'), aborting the whole receptor with an
+    unhandled RDKit exception — not caught by --allow_bad_res, which only
+    covers template-matching failures, not sanitization failures.
+
+    For each (chain, residue, atom name) position, we keep the
+    highest-occupancy record (ties broken by taking the first — usually
+    'A' — alphabetically), matching standard PDB-cleaning practice used
+    ahead of docking preparation.
+    """
+    best: dict[tuple, tuple] = {}  # (chain, resnum, icode, name) -> (occupancy, altloc, line_index)
+    lines = pdb_text.splitlines()
+    for idx, line in enumerate(lines):
+        if not line.startswith(("ATOM", "HETATM")) or len(line) < 27:
+            continue
+        altloc = line[16]
+        if altloc == " ":
+            continue  # no alternate location on this atom; nothing to collapse
+        key = (line[21], line[22:26], line[26], line[12:16])
+        try:
+            occupancy = float(line[54:60])
+        except ValueError:
+            occupancy = 1.0
+        if key not in best or occupancy > best[key][0]:
+            best[key] = (occupancy, altloc, idx)
+
+    if not best:
+        return pdb_text  # nothing had an altLoc — file unchanged
+
+    winning_indices = {v[2] for v in best.values()}
+    out_lines = []
+    dropped = 0
+    for idx, line in enumerate(lines):
+        if not line.startswith(("ATOM", "HETATM")) or len(line) < 27 or line[16] == " ":
+            out_lines.append(line)
+            continue
+        if idx in winning_indices:
+            out_lines.append(line[:16] + " " + line[17:])  # blank the altLoc column
+        else:
+            dropped += 1  # a losing altLoc copy — drop it
+    logger.info("Collapsed alternate locations: kept %d atoms, dropped %d duplicate altLoc records",
+                len(best), dropped)
+    return "\n".join(out_lines) + "\n"
+
+
 def fix_receptor(
     input_pdb: Path,
     output_pdb: Path,
@@ -77,6 +136,17 @@ def fix_receptor(
         raise ReceptorPrepError(
             "PDBFixer/OpenMM is not installed. Install with: pip install pdbfixer openmm"
         ) from exc
+
+    # Collapse alternate locations before anything else touches the
+    # structure — see _collapse_altlocs' docstring. Written to a sibling
+    # temp file rather than mutating input_pdb in place, since callers may
+    # reasonably expect the original upload/download to be left untouched.
+    raw_text = input_pdb.read_text()
+    cleaned_text = _collapse_altlocs(raw_text)
+    if cleaned_text is not raw_text:
+        altloc_cleaned_pdb = input_pdb.with_name(input_pdb.stem + "_noaltloc.pdb")
+        altloc_cleaned_pdb.write_text(cleaned_text)
+        input_pdb = altloc_cleaned_pdb
 
     fixer = PDBFixer(filename=str(input_pdb))
     fixer.findMissingResidues()
