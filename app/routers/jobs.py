@@ -1,18 +1,20 @@
 """Job lifecycle endpoints: create -> poll status -> fetch results/files."""
 from __future__ import annotations
 
+import json
 import shutil
+import subprocess
+import sys
 import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.config import settings
 from app.database import create_job, get_job, list_recent_jobs
 from app.models import DockingParams, JobCreateResponse, JobStatusResponse, PocketSelectionMode
-from app.services.pipeline import run_pipeline
 from app.services.structure_fetch import StructureFetchError, fetch_alphafold_model, fetch_pdb_by_id
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -22,7 +24,6 @@ MAX_UPLOAD_BYTES = settings.MAX_UPLOAD_MB * 1024 * 1024
 
 @router.post("", response_model=JobCreateResponse)
 async def create_docking_job(
-    background_tasks: BackgroundTasks,
     receptor_pdb_id: Optional[str] = Form(None),
     receptor_uniprot_id: Optional[str] = Form(None),
     receptor_file: Optional[UploadFile] = File(None),
@@ -77,7 +78,28 @@ async def create_docking_job(
     )
 
     create_job(job_id, receptor_source, ligand_source, params.model_dump())
-    background_tasks.add_task(run_pipeline, job_id, receptor_pdb, ligand_path, ligand_is_smiles, params)
+
+    # Run the actual pipeline as a separate OS process rather than an
+    # in-process FastAPI BackgroundTask. Confirmed on a real Render
+    # deployment: running the heavy stages (PDBFixer/OpenMM, RDKit/Meeko,
+    # Vina) inside the same long-lived uvicorn worker accumulates memory
+    # across a job's stages — and across successive jobs, since nothing
+    # ever recycles that process — and was OOM-killing a 512MB instance
+    # even for a single job with Vina's own thread count already capped at
+    # 1. A short-lived subprocess that exits when the job finishes hands
+    # 100% of that memory back to the OS unconditionally. Parameters that
+    # don't fit on a command line are written to params.json for
+    # app/worker.py to read back; job status/results still flow through
+    # the shared SQLite job database exactly as before, so nothing in the
+    # frontend or polling logic needs to change.
+    (job_dir / "params.json").write_text(params.model_dump_json())
+    subprocess.Popen(
+        [sys.executable, "-m", "app.worker", job_id, str(receptor_pdb), str(ligand_path),
+         "1" if ligand_is_smiles else "0"],
+        cwd=str(Path(__file__).resolve().parents[2]),  # repo root, so `python -m app...` resolves
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True,  # detach fully — a client disconnect must not kill the job
+    )
 
     return JobCreateResponse(job_id=job_id, status="queued")
 
