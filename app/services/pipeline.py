@@ -13,11 +13,16 @@ aimed at non-CLI-expert users.
 Two reliability mechanisms live here, both added after real failures on a
 free-tier deployment:
 
-  * A process-wide semaphore (_JOB_SLOTS) limits how many jobs run their
-    heavy stages concurrently. Confirmed necessary: running two docking
-    jobs at once on Render's free tier (512MB RAM) OOM-killed the whole
-    instance (exit 137). A second job now waits — reported to the user as
-    the "queued" stage — instead of racing the first one for RAM.
+  * A cross-process file lock (app.utils.proc_lock.job_slot) limits how
+    many jobs run their heavy stages concurrently. Originally an in-process
+    threading.Semaphore, replaced once this pipeline started being invoked
+    from a separate OS process per job (see app/worker.py) rather than a
+    FastAPI BackgroundTask — an in-process primitive can't coordinate
+    across separate processes. Confirmed necessary in the first place:
+    running two docking jobs at once on Render's free tier (512MB RAM)
+    OOM-killed the whole instance (exit 137). A second job now waits —
+    reported to the user as the "queued" stage — instead of racing the
+    first one for RAM.
   * PDBFixer is run through run_with_hard_timeout() rather than called
     directly, because it's the one stage with no subprocess boundary of
     its own and was confirmed to hang indefinitely (30+ minutes, no
@@ -26,7 +31,6 @@ free-tier deployment:
 from __future__ import annotations
 
 import logging
-import threading
 import traceback
 from pathlib import Path
 
@@ -41,6 +45,7 @@ from app.services import (
     receptor_prep,
     visualization,
 )
+from app.utils.proc_lock import job_slot
 from app.utils.proc_timeout import HardTimeoutError, run_with_hard_timeout
 
 _KNOWN_STAGE_ERRORS = (
@@ -52,12 +57,6 @@ _KNOWN_STAGE_ERRORS = (
 )
 
 logger = logging.getLogger(__name__)
-
-# Shared across all jobs handled by this process. FastAPI's BackgroundTasks
-# run on worker threads, so a plain threading.Semaphore (not asyncio's) is
-# the right primitive here — acquire() blocks the worker thread, which is
-# fine since it isn't the event loop thread.
-_JOB_SLOTS = threading.Semaphore(settings.MAX_CONCURRENT_JOBS)
 
 
 class PipelineError(RuntimeError):
@@ -98,18 +97,15 @@ def run_pipeline(
         return
 
     update_job(job_id, status="queued", stage="queued")
-    acquired = _JOB_SLOTS.acquire(timeout=settings.JOB_TIMEOUT_SECONDS)
-    if not acquired:
+    try:
+        with job_slot(timeout_s=settings.JOB_TIMEOUT_SECONDS):
+            _run_pipeline_locked(job_id, job_dir, receptor_pdb, ligand_file, ligand_is_smiles, params)
+    except TimeoutError:
         update_job(
             job_id, status="failed", stage="queued",
             error="Timed out waiting for a free job slot — the server is busy with another job.",
         )
         return
-
-    try:
-        _run_pipeline_locked(job_id, job_dir, receptor_pdb, ligand_file, ligand_is_smiles, params)
-    finally:
-        _JOB_SLOTS.release()
 
 
 def _run_pipeline_locked(
